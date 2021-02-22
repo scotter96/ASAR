@@ -1,25 +1,132 @@
 ﻿using Firebase;
 using Firebase.Database;
 using UnityEngine;
+using UnityEngine.UI;
 using System.Collections.Generic;
+using UnityEngine.EventSystems;
 
 public class Catalogue: MonoBehaviour {
 
   public List<object> initialDatas;
+  Mockup_Menu menuScript;
+
+  public Sprite radioActive;
+  public Sprite radioInactive;
+  public GameObject[] filterButtons;
+  
+  [System.Serializable]
+  public class TempFilteredProducts {
+    public GameObject all;
+    public GameObject dodol;
+    public GameObject kripik;
+    public GameObject kerupuk;
+    public GameObject kacang;
+    public GameObject kopi;
+    public GameObject snack;
+  }
+  public TempFilteredProducts filteredProducts;
 
   void Awake() {
-    FirebaseApp.CheckAndFixDependenciesAsync();
+    menuScript = GetComponent<Mockup_Menu>();
+    if (menuScript == null)
+      Debug.LogError ("All global scripts needs to be inside the same object!");
+    // ? WIP, Temporarily disabled
+    // FirebaseApp.CheckAndFixDependenciesAsync();
   }
 
   void Start() {
-    string[] selectColumns = {"name"};
-    DBRead(
-      tableName: "product_item",
-      knownKey: "category_code",
-      knownValue: "1",
-      selectColumns: selectColumns
-    );
-    Debug.Log(initialDatas);
+    SetFilter("ALL");
+    // ? WIP, Temporarily disabled
+    // string[] selectColumns = {"name"};
+    // DBRead(
+    //   tableName: "product_item",
+    //   knownKey: "category_code",
+    //   knownValue: "1",
+    //   selectColumns: selectColumns
+    // );
+    // Debug.Log(initialDatas);
+  }
+
+  public void SetFilter(string category) {
+    foreach (GameObject button in filterButtons) {
+      button.transform.GetChild(1).GetComponent<Image>().sprite = radioInactive;
+    }
+    if (EventSystem.current.currentSelectedGameObject != null)
+      EventSystem.current.currentSelectedGameObject.transform.GetChild(1).GetComponent<Image>().sprite = radioActive;
+
+    if (category == "ALL") {
+      filteredProducts.all.SetActive(true);
+      filteredProducts.dodol.SetActive(false);
+      filteredProducts.kripik.SetActive(false);
+      filteredProducts.kerupuk.SetActive(false);
+      filteredProducts.kacang.SetActive(false);
+      filteredProducts.kopi.SetActive(false);
+      filteredProducts.snack.SetActive(false);
+    }
+    else if (category == "Dodol") {
+      filteredProducts.all.SetActive(false);
+      filteredProducts.dodol.SetActive(true);
+      filteredProducts.kripik.SetActive(false);
+      filteredProducts.kerupuk.SetActive(false);
+      filteredProducts.kacang.SetActive(false);
+      filteredProducts.kopi.SetActive(false);
+      filteredProducts.snack.SetActive(false);
+    }
+    else if (category == "Kripik") {
+      filteredProducts.all.SetActive(false);
+      filteredProducts.dodol.SetActive(false);
+      filteredProducts.kripik.SetActive(true);
+      filteredProducts.kerupuk.SetActive(false);
+      filteredProducts.kacang.SetActive(false);
+      filteredProducts.kopi.SetActive(false);
+      filteredProducts.snack.SetActive(false);
+    }
+    else if (category == "Kerupuk") {
+      filteredProducts.all.SetActive(false);
+      filteredProducts.dodol.SetActive(false);
+      filteredProducts.kripik.SetActive(false);
+      filteredProducts.kerupuk.SetActive(true);
+      filteredProducts.kacang.SetActive(false);
+      filteredProducts.kopi.SetActive(false);
+      filteredProducts.snack.SetActive(false);
+    }
+    else if (category == "Kacang") {
+      filteredProducts.all.SetActive(false);
+      filteredProducts.dodol.SetActive(false);
+      filteredProducts.kripik.SetActive(false);
+      filteredProducts.kerupuk.SetActive(false);
+      filteredProducts.kacang.SetActive(true);
+      filteredProducts.kopi.SetActive(false);
+      filteredProducts.snack.SetActive(false);
+    }
+    else if (category == "Kopi") {
+      filteredProducts.all.SetActive(false);
+      filteredProducts.dodol.SetActive(false);
+      filteredProducts.kripik.SetActive(false);
+      filteredProducts.kerupuk.SetActive(false);
+      filteredProducts.kacang.SetActive(false);
+      filteredProducts.kopi.SetActive(true);
+      filteredProducts.snack.SetActive(false);
+    }
+    else if (category == "Snack") {
+      filteredProducts.all.SetActive(false);
+      filteredProducts.dodol.SetActive(false);
+      filteredProducts.kripik.SetActive(false);
+      filteredProducts.kerupuk.SetActive(false);
+      filteredProducts.kacang.SetActive(false);
+      filteredProducts.kopi.SetActive(false);
+      filteredProducts.snack.SetActive(true);
+    }
+    else {
+      filteredProducts.all.SetActive(false);
+      filteredProducts.dodol.SetActive(false);
+      filteredProducts.kripik.SetActive(false);
+      filteredProducts.kerupuk.SetActive(false);
+      filteredProducts.kacang.SetActive(false);
+      filteredProducts.kopi.SetActive(false);
+      filteredProducts.snack.SetActive(false);
+    }
+    menuScript.TogglePopup();
   }
 
   void DBRead(string tableName, string knownKey, object knownValue=null, string[] selectColumns=null) {
