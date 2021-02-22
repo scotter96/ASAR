@@ -7,15 +7,21 @@ public class SessionData : MonoBehaviour
     string currentUsername;
     string lastScene;
     string currentScene;
+    string context;
 
     void Start()
     {
         DontDestroyOnLoad(gameObject);
     }
 
-    // Update is called once per frame
-    void Update()
+    public void SaveSceneSession(string nextScene, string thisScene, string contextData="")
     {
-        
+        currentScene = nextScene;
+        lastScene = thisScene;
+        context = contextData;
+    }
+
+    public string GetContext() {
+        return context;
     }
 }
