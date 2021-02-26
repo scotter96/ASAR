@@ -12,7 +12,6 @@ public class Mockup_Menu : MonoBehaviour
 
     [System.Serializable]
     public class CatalogItems {
-        public GameObject productParent;
         public GameObject filterPopup;
     }
     public CatalogItems catalogItems;
@@ -22,6 +21,16 @@ public class Mockup_Menu : MonoBehaviour
         public GameObject courierPopup;
     }
     public AddressItems addressItems;
+    [System.Serializable]
+    public class PaymentItems {
+        public GameObject[] selectionObjects;
+        public Color selectedColor;
+        public Color disabledColor;
+        public GameObject purchaseButton;
+
+        public string currentPayment;
+    }
+    public PaymentItems paymentItems;
 
     void Start() {
         string sceneName = SceneManager.GetActiveScene().name;
@@ -29,6 +38,10 @@ public class Mockup_Menu : MonoBehaviour
             GameObject sessionDataObj = Instantiate(sessionDataPrefab, Vector3.zero, Quaternion.identity) as GameObject;
         }
         sessionData = GameObject.FindWithTag("SessionData").GetComponent<SessionData>();
+
+        if (sceneName == "Menu Payment") {
+            RecheckPaymentButton(true,null);
+        }
     }
 
     void Update()
@@ -61,7 +74,6 @@ public class Mockup_Menu : MonoBehaviour
                     ExitApp();
             }
         }
-        
     }
 
     public void TogglePopup(string popup="") {
@@ -96,6 +108,16 @@ public class Mockup_Menu : MonoBehaviour
         if (sceneName == "Menu Product") {
             string selectedProductName = EventSystem.current.currentSelectedGameObject.transform.GetChild(1).GetComponent<Text>().text;
             sessionData.SaveSceneSession(sceneName,thisScene,selectedProductName);
+
+            // ? Save the Product Information
+            Product product = EventSystem.current.currentSelectedGameObject.GetComponent<Product>();
+            sessionData.SaveProductInfo(
+                codeInput: product.code,
+                nameInput: product.name,
+                catCodeInput: product.category_code,
+                priceInput: product.price,
+                qtyInput: product.qty
+            );
         }
         else
             sessionData.SaveSceneSession(sceneName,thisScene);
@@ -105,5 +127,52 @@ public class Mockup_Menu : MonoBehaviour
     public void ExitApp()
     {
         Application.Quit();
+    }
+
+    // ? Fill the selected variable with clicked button
+    public void ChangePayment(GameObject selected)
+    {
+        RecheckPaymentButton(false,selected);
+    }
+
+    void RecheckPaymentButton(bool onStart=false,GameObject selected=null) {
+        if (onStart) {
+            paymentItems.currentPayment = sessionData.GetPayment();
+            GameObject[] mainButtons = GameObject.FindGameObjectsWithTag("MainButtons");
+            foreach (GameObject buttonObj in mainButtons) {
+                Text objText = buttonObj.GetComponentInChildren<Text>();
+                if (objText.text == paymentItems.currentPayment) {
+                    selected = buttonObj;
+                    break;
+                }
+            }
+        }
+
+        foreach (GameObject go in paymentItems.selectionObjects)
+        {
+            Image objImage = go.GetComponent<Image>();
+            Text objText = go.GetComponentInChildren<Text>();
+            if (selected) {
+                if (go.name != selected.name) {
+                    objImage.color = paymentItems.disabledColor;
+                    objText.color = Color.black;
+                }
+                else {
+                    objImage.color = paymentItems.selectedColor;
+                    objText.color = Color.white;
+                    sessionData.SetPayment(objText.text);
+                }
+            }
+            else {
+                objImage.color = paymentItems.disabledColor;
+                objText.color = Color.black;
+            }
+        }
+
+        paymentItems.currentPayment = sessionData.GetPayment();
+        if (paymentItems.currentPayment != null && paymentItems.currentPayment != "")
+            paymentItems.purchaseButton.GetComponent<Button>().interactable = true;
+        else
+            paymentItems.purchaseButton.GetComponent<Button>().interactable = false;   
     }
 }
