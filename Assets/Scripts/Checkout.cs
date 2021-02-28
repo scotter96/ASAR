@@ -18,6 +18,7 @@ public class Checkout : MonoBehaviour
         InitCart();
     }
 
+    // TODO: Add scrollable panel to Cart Items on 'Checkout' scene
     void InitCart()
     {
         int totalAmount = 0;
