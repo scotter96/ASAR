@@ -31,6 +31,7 @@ public class Mockup_Menu : MonoBehaviour
     [System.Serializable]
     public class MainItems {
         public GameObject accountPopup;
+        public GameObject flushButton;
     }
     public MainItems mainItems;
 
@@ -39,6 +40,12 @@ public class Mockup_Menu : MonoBehaviour
         public GameObject filterPopup;
     }
     public CatalogItems catalogItems;
+
+    [System.Serializable]
+    public class CheckoutItems {
+        public GameObject advanceButton;
+    }
+    public CheckoutItems checkoutItems;
 
     [System.Serializable]
     public class AddressItems {
@@ -68,9 +75,14 @@ public class Mockup_Menu : MonoBehaviour
         if (sceneName == "Menu Payment") {
             RecheckPaymentButton(true,null);
         }
-
-        if (sceneName == "Menu Utama" && sessionData.currentUsername != "")
-            welcomeText.text = $"Selamat Datang, {sessionData.currentUsername}!";
+        else if (sceneName == "Menu Checkout") {
+            if (sessionData.itemsInCart.Count > 0)
+                checkoutItems.advanceButton.GetComponent<Button>().interactable = true;
+        }
+        else if (sceneName == "Menu Utama") {
+            if (sessionData.user.username != "")
+                welcomeText.text = $"Selamat Datang, {sessionData.user.username}!";
+        }
     }
 
     void Update()
@@ -82,6 +94,11 @@ public class Mockup_Menu : MonoBehaviour
             }
             else {
                 string sceneName = SceneManager.GetActiveScene().name;
+                // * Exit the app if on main menu / login page
+                if (sceneName == "Menu Utama" || sceneName == "Menu Login")
+                    ExitApp();
+
+                // * Open the previous scene according to sequence
                 if (sceneName == "Menu Alamat")
                     OpenScene("Menu Checkout");
                 else if (sceneName == "Menu AR")
@@ -93,15 +110,13 @@ public class Mockup_Menu : MonoBehaviour
                 else if (sceneName == "Menu Katalog")
                     OpenScene("Menu Utama");
                 else if (sceneName == "Menu Payment")
-                    OpenScene("Menu Checkout");
+                    OpenScene("Menu Alamat");
                 else if (sceneName == "Menu Product")
                     OpenScene("Menu Katalog");
                 else if (sceneName == "Menu Tentang")
                     OpenScene("Menu Utama");
                 else if (sceneName == "Menu Register")
                     OpenScene("Menu Login");
-                else if (sceneName == "Menu Utama" || sceneName == "Menu Login")
-                    ExitApp();
             }
         }
     }
@@ -161,6 +176,7 @@ public class Mockup_Menu : MonoBehaviour
                 || currentScene == "Menu Login"
                 || currentScene == "Menu Register"
                 || currentScene == "Menu Utama"
+                || currentScene == "Menu Checkout"
             ) {
                 loadingPopup.SetActive(false);
             }
@@ -199,18 +215,26 @@ public class Mockup_Menu : MonoBehaviour
         string thisScene = SceneManager.GetActiveScene().name;
         if (sceneName == "Menu Product") {
             GameObject clickerObj = EventSystem.current.currentSelectedGameObject;
-            string selectedProductName = clickerObj.transform.GetChild(1).GetComponent<Text>().text;
-            sessionData.SaveSceneSession(sceneName,thisScene,selectedProductName);
+            if (clickerObj != null) {
+                string selectedProductName = string.Empty;
+                if (thisScene == "Menu Katalog")
+                    selectedProductName = clickerObj.transform.GetChild(1).GetComponent<Text>().text;
+                else if (thisScene == "Menu Checkout")
+                    selectedProductName = clickerObj.transform.GetChild(1).GetChild(0).GetComponentInChildren<Text>().text;
+                sessionData.SaveSceneSession(sceneName,thisScene,selectedProductName);
 
-            // ? Save the Product Information
-            Product.ProductAttr productAttr = clickerObj.GetComponent<Product>().productAttr;
-            sessionData.SaveProductInfo(
-                codeInput: productAttr.code,
-                nameInput: productAttr.name,
-                catCodeInput: productAttr.category_code,
-                priceInput: productAttr.price,
-                qtyInput: productAttr.qty
-            );
+                // ? Save the Product Information
+                Product.ProductAttr productAttr = clickerObj.GetComponent<Product>().productAttr;
+                sessionData.SaveProductInfo(
+                    codeInput: productAttr.code,
+                    nameInput: productAttr.name,
+                    catCodeInput: productAttr.category_code,
+                    priceInput: productAttr.price,
+                    qtyInput: productAttr.qty
+                );
+            }
+            else
+                sceneName = "Menu Katalog";
         }
         else {
             if (sceneName == "AR" || sceneName == "Menu Katalog")
@@ -218,7 +242,7 @@ public class Mockup_Menu : MonoBehaviour
             sessionData.SaveSceneSession(sceneName,thisScene);
         }
 
-        if (sessionData.currentUsername == "" && sceneName == "Menu Checkout")
+        if (sessionData.user.username == "" && sceneName == "Menu Checkout")
             TogglePopup("NoAuth");
         else
             SceneManager.LoadScene(sceneName);
@@ -226,7 +250,7 @@ public class Mockup_Menu : MonoBehaviour
 
     public void ExitApp()
     {
-        Application.Quit();
+        sessionData.ExitApp();
     }
 
     // ? Fill the selected variable with clicked button
@@ -277,7 +301,7 @@ public class Mockup_Menu : MonoBehaviour
     }
 
     public void AccountClick() {
-        if (sessionData.currentUsername != "")
+        if (sessionData.user.username != "")
             TogglePopup("Logout");
         else
             OpenScene("Menu Login");
@@ -290,5 +314,10 @@ public class Mockup_Menu : MonoBehaviour
 
     public void OpenMapsLink() {
         Application.OpenURL(mapsUrl);
+    }
+
+    public void FlushCart() {
+        sessionData.FlushCart();
+        TogglePopup();
     }
 }

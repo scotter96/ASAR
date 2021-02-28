@@ -1,4 +1,7 @@
 ﻿using UnityEngine;
+using System;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Firebase;
@@ -6,6 +9,9 @@ using Firebase.Database;
 
 public class SessionData : MonoBehaviour
 {
+    [Tooltip("Check if local storage is to be used.")]
+    public bool useLocalStorage = true;
+
     DatabaseReference rootRef;
     FirebaseDatabase database;
     bool startInitFirebase;
@@ -13,8 +19,7 @@ public class SessionData : MonoBehaviour
     public List<string> rawProducts;
     public List<string> users;
 
-    public Dictionary<string,int>[] itemsInCart;
-    public string currentUsername;
+    public List<Dictionary<string,string>> itemsInCart = new List<Dictionary<string,string>>();
     public string lastScene;
     public string currentScene;
     public string context;
@@ -31,6 +36,7 @@ public class SessionData : MonoBehaviour
     }
     public ProductInfo productInfo;
 
+    // * Active User
     [System.Serializable]
     public class User {
         public string email;
@@ -40,7 +46,9 @@ public class SessionData : MonoBehaviour
     public User user;
 
     void Awake() {
+        // ? Make this Game Object permanent
         DontDestroyOnLoad(gameObject);
+
         // ? Get the root reference location of the database.
         rootRef = FirebaseDatabase.DefaultInstance.RootReference;
         database = rootRef.Database;
@@ -130,8 +138,7 @@ public class SessionData : MonoBehaviour
 
         // ? Write the new user data to database
         string json = JsonUtility.ToJson(user);
-        // write = DBWrite("users",json);
-        write = DBWrite(tableName:"users",key:"username",value:username);
+        write = DBWrite("users",json);
 
         // ? Flush the User object parameters
         user.email = string.Empty;
@@ -141,12 +148,52 @@ public class SessionData : MonoBehaviour
         return write;
     }
 
-    public void LoginSuccess (string username) {
-        currentUsername = username;
+    public void LoginSuccess (string username, string password) {
+        user.username = username;
+        user.password = password;
+
+        if (useLocalStorage)
+            SaveToLocal();
     }
 
     public void LogoutSuccess () {
-        currentUsername = string.Empty;
+        ResetSave();
+    }
+
+    public void AddToCart(string code, string name, string category_code, int price, int qty) {
+        bool itemExisted = false;
+        foreach (Dictionary<string,string> item in itemsInCart) {
+            if (item["code"] == code) {
+                if (qty > 0)
+                    item["qty"] = qty.ToString();
+                else
+                    itemsInCart.Remove(item);
+                itemExisted = true;
+                break;
+            }
+        }
+        if (!itemExisted) {
+            if (qty > 0) {
+                Dictionary<string,string> newData = new Dictionary<string,string>();
+                newData.Add("code",code);
+                newData.Add("name",name);
+                newData.Add("category_code",category_code);
+                newData.Add("price",price.ToString());
+                newData.Add("qty",qty.ToString());
+                itemsInCart.Add(newData);
+            }
+        }
+    }
+
+    public void ExitApp() {
+        if (useLocalStorage)
+            SaveToLocal();
+        Application.Quit();
+    }
+
+    // * Load a Sprite from Resources (e.g. Assets/Resources/Products/Cashew)
+    public static Sprite GetSprite(string filename) {
+        return Resources.Load<Sprite>($"Products/{filename}");
     }
 
     // **************** FIREBASE REALTIME DATABASE CODES ****************
@@ -229,6 +276,7 @@ public class SessionData : MonoBehaviour
         }
     }
 
+    // ? This function returns boolean as the result. Can be used to update the whole record, or just desired field
     bool DBWrite(string tableName, string json="", string key="", string value="") {
         string pkId = (users.Count).ToString("");
         if (json != "" && key == "") {
@@ -245,4 +293,77 @@ public class SessionData : MonoBehaviour
             return false;
         }
     }
+
+    // **************** LOCAL STORAGE CODES ****************
+
+    public static string localStorageFilename = "saveData.asar";
+    string path = "";
+
+    void Start() {
+        // ? Load datas from Local
+        if (useLocalStorage) {
+            path = $"{Application.persistentDataPath}/{localStorageFilename}";
+            LoadFromLocal();
+        }
+    }
+
+    void LoadFromLocal() {
+        if (File.Exists (path)) {
+            BinaryFormatter bf = new BinaryFormatter ();
+			FileStream file = File.Open (path, FileMode.Open);
+			SaveData data = (SaveData) bf.Deserialize (file);
+			file.Close ();
+
+            // * Start of contents to load
+            itemsInCart = data.itemsInCart;
+            user.email = data.email;
+            user.username = data.username;
+            user.password = data.password;
+            // * End of contents to load
+        }
+        else
+            Debug.LogWarning("No local save found.");
+    }
+
+    void SaveToLocal() {
+        BinaryFormatter bf = new BinaryFormatter ();
+		FileStream file = File.Create (path);
+		SaveData data = new SaveData ();
+
+        // * Start of contents to save
+        data.itemsInCart = itemsInCart;
+        data.email = user.email;
+        data.username = user.username;
+        data.password = user.password;
+        // * End of contents to save
+
+        bf.Serialize (file, data);
+		file.Close ();
+    }
+
+    public void ResetSave() {
+        itemsInCart = new List<Dictionary<string,string>>();
+        user.email = string.Empty;
+        user.username = string.Empty;
+        user.password = string.Empty;
+
+        if (useLocalStorage)
+            SaveToLocal();
+    }
+
+    public void FlushCart() {
+        itemsInCart = new List<Dictionary<string,string>>();
+
+        if (useLocalStorage)
+            SaveToLocal();
+    }
+}
+
+[Serializable]
+class SaveData
+{
+	public List<Dictionary<string,string>> itemsInCart;
+    public string email;
+    public string username;
+    public string password;
 }

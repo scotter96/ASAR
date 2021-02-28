@@ -5,7 +5,9 @@ using System.Collections.Generic;
 
 public class Product : MonoBehaviour
 {
+    Mockup_Menu menuScript;
     SessionData sessionData;
+    int qty;
 
     [System.Serializable]
     public class ProductAttr
@@ -27,6 +29,8 @@ public class Product : MonoBehaviour
         public Text productVariant;
         public Text productPrice;
         public Text productStock;
+
+        public Text productQty;
     }
     public ProductProductItems productProductItems;
 
@@ -49,17 +53,20 @@ public class Product : MonoBehaviour
     void Start()
     {
         sessionData = GameObject.FindWithTag("SessionData").GetComponent<SessionData>();
+        Setup();
     }
 
     public void Setup()
     {
         string sceneName = SceneManager.GetActiveScene().name;
-        if (sceneName == "Menu Product")
+        if (sceneName == "Menu Product") {
+            menuScript = GetComponent<Mockup_Menu>();
             LoadProductDetail();
+        }
         else if (sceneName == "Menu Katalog")
         {
             string filename = productAttr.name.Replace(" ", string.Empty);
-            productCatalogItems.productImage.sprite = GetSprite(filename);
+            productCatalogItems.productImage.sprite = SessionData.GetSprite(filename);
             productCatalogItems.productName.text = productAttr.name;
             productCatalogItems.productPrice.text = productAttr.price.ToString("0,0");
         }
@@ -73,7 +80,7 @@ public class Product : MonoBehaviour
         {
             context = context.Replace(" ", string.Empty);
             Debug.Log(context.GetType() + " " + context);
-            var productSprite = GetSprite(context);
+            var productSprite = SessionData.GetSprite(context);
             if (productSprite != null)
             {
                 productProductItems.productImage.sprite = productSprite;
@@ -119,10 +126,40 @@ public class Product : MonoBehaviour
         productProductItems.productVariant.text = productAttr.category_code;
         productProductItems.productPrice.text = productAttr.price.ToString();
         productProductItems.productStock.text = productAttr.qty.ToString();
+
+        // * Also fetch the qty of this item in Cart
+        string qtyStr = "0";
+        foreach (Dictionary<string,string> item in sessionData.itemsInCart) {
+            if (item["code"] == productAttr.code) {
+                if (item.TryGetValue("qty", out qtyStr))
+                    break;
+            }
+        }
+        qty = int.Parse(qtyStr);
+        SetQty();
     }
 
-    // * Load a Sprite from Resources (e.g. Assets/Resources/Products/Cashew)
-    Sprite GetSprite(string filename) {
-        return Resources.Load<Sprite>($"Products/{filename}");
+    // * Add (or subtract) product's qty
+    public void AddQty(int amount) {
+        if (sessionData.user.username == "")
+            menuScript.TogglePopup("NoAuth");
+        else {
+            qty += amount;
+            sessionData.AddToCart(
+                productAttr.code,
+                productAttr.name,
+                productAttr.category_code,
+                productAttr.price,
+                qty
+            );
+            if (qty>=0)
+                SetQty();
+            else
+                qty = 0;
+        }
+    }
+
+    void SetQty() {
+        productProductItems.productQty.text = qty.ToString();
     }
 }

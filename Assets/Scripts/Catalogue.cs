@@ -2,6 +2,7 @@
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System;
+using System.Collections.Generic;
 
 public class Catalogue : MonoBehaviour
 {
@@ -13,6 +14,7 @@ public class Catalogue : MonoBehaviour
     public GameObject[] filterButtons;
     public GameObject productPrefab;
     public GameObject productParent;
+    public Text totalInCart;
 
     // ! These values below is already mapped. DO NOT ALTER THE ORDER!
     public string[] categories = {
@@ -57,6 +59,9 @@ public class Catalogue : MonoBehaviour
             CreateProductFromJSON(product);
         }
         SetCatalogHeight();
+
+        // * Get the total items in cart
+        totalInCart.text = sessionData.itemsInCart.Count.ToString();
     }
 
     public void SetFilter(string category)

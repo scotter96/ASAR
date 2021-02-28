@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class Login : MonoBehaviour
 {
@@ -18,8 +19,14 @@ public class Login : MonoBehaviour
     }
 
     void Update() {
-        if (sessionData == null)
+        if (sessionData == null) {
             sessionData = GameObject.FindWithTag("SessionData").GetComponent<SessionData>();
+            if (Time.time < 2.0f) {
+                string sceneName = SceneManager.GetActiveScene().name;
+                if (sceneName == "Menu Login" && sessionData.useLocalStorage && sessionData.user.username != "")
+                    menuScript.OpenScene("Menu Utama");
+            }
+        }
 
         if (loginPassed)
             PostLogin();
@@ -82,7 +89,10 @@ public class Login : MonoBehaviour
     }
 
     void PostLogin() {
-        sessionData.LoginSuccess(usernameField.text);
+        sessionData.LoginSuccess(
+            usernameField.text,
+            passwordField.text
+        );
         menuScript.OpenScene("Menu Utama");
     }
 

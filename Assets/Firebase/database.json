@@ -1,4 +1,7 @@
 {
+    "users": [
+        {"username": "admin","email": "admin@example.com","password": "adminadmin"}
+    ],
     "product_category": [
         {"code": "1","name": "Dodol"},
         {"code": "2","name": "Kacang"},
