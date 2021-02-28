@@ -7,8 +7,27 @@
 /[Oo]bj/
 /[Bb]uild/
 /[Bb]uilds/
+/_[Bb]uilds/
+/_[Nn]askah/
 /[Ll]ogs/
+/[Pp]ackages/
 /[Mm]emoryCaptures/
+/QCAR/
+
+# ? MY OWN
+/[Aa]ssets/3D Text/
+/[Aa]ssets/Editor/
+/[Aa]ssets/Editor Default Resources/
+/[Aa]ssets/ExternalDependencyManager/
+/[Aa]ssets/Models/
+/[Aa]ssets/Parse/
+/[Aa]ssets/Plugins/
+/[Aa]ssets/Prefabs/
+/[Aa]ssets/Resources/
+/[Aa]ssets/Scenes/
+/[Aa]ssets/Sprites/
+/[Aa]ssets/StreamingAssets/
+/[Aa]ssets/_Misc/
 
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta

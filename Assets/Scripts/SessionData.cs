@@ -1,19 +1,24 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using Firebase;
 using Firebase.Database;
 
 public class SessionData : MonoBehaviour
 {
-    public string tableName = "product_item";
+    DatabaseReference rootRef;
     FirebaseDatabase database;
-    List<string> rawProducts;
+    bool startInitFirebase;
+    public string[] tableNames = {"product_item","users"};
+    public List<string> rawProducts;
+    public List<string> users;
 
-    Dictionary<string,int>[] itemsInCart;
-    string currentUsername;
-    string lastScene;
-    string currentScene;
-    string context;
-    string paymentMethod;
+    public Dictionary<string,int>[] itemsInCart;
+    public string currentUsername;
+    public string lastScene;
+    public string currentScene;
+    public string context;
+    public string paymentMethod;
     
     [System.Serializable]
     public class ProductInfo
@@ -21,27 +26,55 @@ public class SessionData : MonoBehaviour
         public string code;
         public string name;
         public string category_code;
-        public decimal price;
+        public int price;
         public int qty;
     }
-    ProductInfo productInfo;
+    public ProductInfo productInfo;
+
+    [System.Serializable]
+    public class User {
+        public string email;
+        public string username;
+        public string password;
+    }
+    public User user;
 
     void Awake() {
-        //// FirebaseApp.CheckAndFixDependenciesAsync();
+        DontDestroyOnLoad(gameObject);
         // ? Get the root reference location of the database.
-        database = FirebaseDatabase.DefaultInstance.RootReference.Database;
+        rootRef = FirebaseDatabase.DefaultInstance.RootReference;
+        database = rootRef.Database;
+        FirebaseApp.CheckAndFixDependenciesAsync().ContinueWith(GetDependencyResult);
     }
 
-    void Start()
+    void GetDependencyResult(Task<DependencyStatus> task) {
+        var dependencyStatus = task.Result;
+        if (dependencyStatus == Firebase.DependencyStatus.Available)
+        {
+            startInitFirebase = true;
+        }
+        else
+        {
+            UnityEngine.Debug.LogError(System.String.Format(
+            "Could not resolve all Firebase dependencies: {0}", dependencyStatus));
+            // ! Firebase Unity SDK is not safe to use here.
+        }
+    }
+
+    void Update()
     {
-        DontDestroyOnLoad(gameObject);
-        
-        InitDBRead(
-            tableName: tableName
-            // knownKey: "category_code",
-            // knownValue: "1"
-        );
-        database.GetReference(tableName).ValueChanged += RealtimeDBRead;
+        if (startInitFirebase) {
+            foreach (string tableName in tableNames) {
+                // TODO: Disabled temporarily since sometimes works sometimes not, so now just relying on ValueChanged
+                // InitDBRead(
+                //     tableName: tableName
+                //     // knownKey: "category_code",
+                //     // knownValue: "1"
+                // );
+                database.GetReference(tableName).ValueChanged += RealtimeDBRead;
+            }
+            startInitFirebase = false;
+        }
     }
 
     public void SaveSceneSession(string nextScene, string thisScene, string contextData="")
@@ -57,7 +90,6 @@ public class SessionData : MonoBehaviour
 
     public void SetPayment(string payment) {
         paymentMethod = payment;
-        Debug.Log($"Payment set to {paymentMethod}!");
     }
 
     public string GetPayment() {
@@ -68,7 +100,7 @@ public class SessionData : MonoBehaviour
         string codeInput,
         string nameInput,
         string catCodeInput,
-        decimal priceInput,
+        int priceInput,
         int qtyInput
     ) {
         productInfo.code = codeInput;
@@ -78,8 +110,46 @@ public class SessionData : MonoBehaviour
         productInfo.qty = qtyInput;
     }
 
-    // TODO: Get product information
-    // public Dictionary<string,object> GetProductInfo () {}
+    public Dictionary<string,object> GetProductInfo () {
+        Dictionary<string,object> dict = new Dictionary<string, object>();
+        dict.Add("code",productInfo.code);
+        dict.Add("name",productInfo.name);
+        dict.Add("category_code",productInfo.category_code);
+        dict.Add("price",productInfo.price);
+        dict.Add("qty",productInfo.qty);
+        return dict;
+    }
+
+    public bool CreateUser (string email, string username, string password) {
+        bool write = false;
+
+        // ? Update the User object with parameters received
+        user.email = email;
+        user.username = username;
+        user.password = password;
+
+        // ? Write the new user data to database
+        string json = JsonUtility.ToJson(user);
+        // write = DBWrite("users",json);
+        write = DBWrite(tableName:"users",key:"username",value:username);
+
+        // ? Flush the User object parameters
+        user.email = string.Empty;
+        user.username = string.Empty;
+        user.password = string.Empty;
+
+        return write;
+    }
+
+    public void LoginSuccess (string username) {
+        currentUsername = username;
+    }
+
+    public void LogoutSuccess () {
+        currentUsername = string.Empty;
+    }
+
+    // **************** FIREBASE REALTIME DATABASE CODES ****************
 
     void InitDBRead(string tableName, string knownKey = null, object knownValue = null)
     {
@@ -96,8 +166,12 @@ public class SessionData : MonoBehaviour
                 foreach (DataSnapshot data in datas)
                 {
                     string json = data.GetRawJsonValue();
-                    if (knownKey == null)
-                        rawProducts.Add(json);
+                    if (knownKey == null) {
+                        if (tableName == "product_item" && !rawProducts.Contains(json))
+                            rawProducts.Add(json);
+                        else if (tableName == "users" && !users.Contains(json))
+                            users.Add(json);
+                    }
                     else
                     {
                         // ? This is coded accordingly to my JSON format (see `database.json` file)
@@ -107,12 +181,20 @@ public class SessionData : MonoBehaviour
                             Debug.LogError($"No such key as \"{knownKey}\" !");
                         else
                         {
-                            if (knownValue == null)
-                                rawProducts.Add(json);
+                            if (knownValue == null) {
+                                if (tableName == "product_item" && !rawProducts.Contains(json))
+                                    rawProducts.Add(json);
+                                else if (tableName == "users" && !users.Contains(json))
+                                    users.Add(json);
+                            }
                             else
                             {
-                                if (val.ToString() == knownValue.ToString())
-                                    rawProducts.Add(json);
+                                if (val.ToString() == knownValue.ToString()) {
+                                    if (tableName == "product_item" && !rawProducts.Contains(json))
+                                        rawProducts.Add(json);
+                                    else if (tableName == "users" && !users.Contains(json))
+                                        users.Add(json);
+                                }
                             }
                         }
                     }
@@ -123,15 +205,44 @@ public class SessionData : MonoBehaviour
 
     void RealtimeDBRead(object sender, ValueChangedEventArgs args)
     {
+        // * Error Check
         if (args.DatabaseError != null) {
             Debug.LogError(args.DatabaseError.Message);
             return;
         }
+
+        // * Fetch the datas & flush the old ones
+        string tableName = args.Snapshot.Key;
         IEnumerable<DataSnapshot> datas = args.Snapshot.Children;
-        rawProducts.Clear();
+        if (tableName == "product_item")
+            rawProducts.Clear();
+        else if (tableName == "users")
+            users.Clear();
+
+        // * Insert new datas
         foreach (DataSnapshot data in datas) {
             string json = data.GetRawJsonValue();
-            rawProducts.Add(json);
+            if (tableName == "product_item" && !rawProducts.Contains(json))
+                rawProducts.Add(json);
+            else if (tableName == "users" && !users.Contains(json))
+                users.Add(json);
+        }
+    }
+
+    bool DBWrite(string tableName, string json="", string key="", string value="") {
+        string pkId = (users.Count).ToString("");
+        if (json != "" && key == "") {
+            rootRef.Child(tableName).Child(pkId).SetRawJsonValueAsync(json);
+            return true;
+        }
+        // TODO WIP: Update new value to a certain key (currently unused)
+        // else if (key != "" && json == "") {
+        //     rootRef.Child(tableName).Child(pkId).Child(key).SetValueAsync(value);
+        //     return true;
+        // }
+        else {
+            Debug.LogError($"Error writing {tableName}! Params:\njson: {json}\nkey: {key}\nvalue: {value}");
+            return false;
         }
     }
 }

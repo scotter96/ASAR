@@ -7,20 +7,46 @@ public class Mockup_Menu : MonoBehaviour
 {
     bool popupActive;
     SessionData sessionData;
+    public string mapsUrl = "https://goo.gl/maps/LW4kPL4KFKfXmdqt6";
     
+    public Text welcomeText;
     public GameObject sessionDataPrefab;
+    public GameObject loadingPopup;
+    public GameObject noAuthPopup;
+
+    [System.Serializable]
+    public class LoginItems {
+        public GameObject noticePopup;
+        public GameObject nullPopup;
+    }
+    public LoginItems loginItems;
+
+    [System.Serializable]
+    public class RegisterItems {
+        public GameObject noticePopup;
+        public GameObject nullPopup;
+    }
+    public RegisterItems registerItems;
+
+    [System.Serializable]
+    public class MainItems {
+        public GameObject accountPopup;
+    }
+    public MainItems mainItems;
 
     [System.Serializable]
     public class CatalogItems {
         public GameObject filterPopup;
     }
     public CatalogItems catalogItems;
+
     [System.Serializable]
     public class AddressItems {
         public GameObject cityPopup;
         public GameObject courierPopup;
     }
     public AddressItems addressItems;
+
     [System.Serializable]
     public class PaymentItems {
         public GameObject[] selectionObjects;
@@ -34,7 +60,7 @@ public class Mockup_Menu : MonoBehaviour
 
     void Start() {
         string sceneName = SceneManager.GetActiveScene().name;
-        if (sceneName == "Halaman Login" && GameObject.Find("SessionData") == null) {
+        if (sceneName == "Menu Login" && GameObject.FindWithTag("SessionData") == null) {
             GameObject sessionDataObj = Instantiate(sessionDataPrefab, Vector3.zero, Quaternion.identity) as GameObject;
         }
         sessionData = GameObject.FindWithTag("SessionData").GetComponent<SessionData>();
@@ -42,6 +68,9 @@ public class Mockup_Menu : MonoBehaviour
         if (sceneName == "Menu Payment") {
             RecheckPaymentButton(true,null);
         }
+
+        if (sceneName == "Menu Utama" && sessionData.currentUsername != "")
+            welcomeText.text = $"Selamat Datang, {sessionData.currentUsername}!";
     }
 
     void Update()
@@ -64,22 +93,39 @@ public class Mockup_Menu : MonoBehaviour
                 else if (sceneName == "Menu Katalog")
                     OpenScene("Menu Utama");
                 else if (sceneName == "Menu Payment")
-                    OpenScene("Menu Alamat");
-                    // OpenScene("Menu Checkout");
+                    OpenScene("Menu Checkout");
                 else if (sceneName == "Menu Product")
                     OpenScene("Menu Katalog");
                 else if (sceneName == "Menu Tentang")
                     OpenScene("Menu Utama");
-                else if (sceneName == "Menu Utama" || sceneName == "Halaman Login")
+                else if (sceneName == "Menu Register")
+                    OpenScene("Menu Login");
+                else if (sceneName == "Menu Utama" || sceneName == "Menu Login")
                     ExitApp();
             }
         }
     }
 
     public void TogglePopup(string popup="") {
-        if (popup == "FilterProduct") {
+        string currentScene = SceneManager.GetActiveScene().name;
+
+        if (popup == "Loading") {
+            loadingPopup.SetActive(!loadingPopup.activeInHierarchy);
+            popupActive = loadingPopup.activeInHierarchy;
+        }
+        else if (popup == "NoAuth") {
+            noAuthPopup.SetActive(!noAuthPopup.activeInHierarchy);
+            popupActive = noAuthPopup.activeInHierarchy;
+        }
+        else if (popup == "Logout") {
+            mainItems.accountPopup.SetActive(!mainItems.accountPopup.activeInHierarchy);
+            popupActive = mainItems.accountPopup.activeInHierarchy;
+        }
+        else if (popup == "FilterProduct") {
             catalogItems.filterPopup.SetActive(!catalogItems.filterPopup.activeInHierarchy);
             popupActive = catalogItems.filterPopup.activeInHierarchy;
+            RectTransform filterPopupRT = catalogItems.filterPopup.transform.GetChild(0) as RectTransform;
+            filterPopupRT.anchoredPosition = new Vector2(filterPopupRT.anchoredPosition.x,-(filterPopupRT.sizeDelta.y)/10);
         }
         else if (popup == "SelectCity") {
             addressItems.cityPopup.SetActive(!addressItems.cityPopup.activeInHierarchy);
@@ -89,14 +135,60 @@ public class Mockup_Menu : MonoBehaviour
             addressItems.courierPopup.SetActive(!addressItems.courierPopup.activeInHierarchy);
             popupActive = addressItems.courierPopup.activeInHierarchy;
         }
+        else if (popup == "WrongLogin") {
+            loginItems.noticePopup.SetActive(!loginItems.noticePopup.activeInHierarchy);
+            popupActive = loginItems.noticePopup.activeInHierarchy;
+        }
+        else if (popup == "UserExisted") {
+            registerItems.noticePopup.SetActive(!registerItems.noticePopup.activeInHierarchy);
+            popupActive = registerItems.noticePopup.activeInHierarchy;
+        }
+        else if (popup == "NullFields") {
+            if (currentScene == "Menu Login") {
+                loginItems.nullPopup.SetActive(!loginItems.nullPopup.activeInHierarchy);
+                popupActive = loginItems.nullPopup.activeInHierarchy;
+            }
+            else if (currentScene == "Menu Register") {
+                registerItems.nullPopup.SetActive(!registerItems.nullPopup.activeInHierarchy);
+                popupActive = registerItems.nullPopup.activeInHierarchy;
+            }
+        }
+        // ? Disable all popups
         else {
-            string currentScene = SceneManager.GetActiveScene().name;
-            // ? Disable all popups
+            // ? Disable Loading popup
+            if (
+                currentScene == "Menu AR"
+                || currentScene == "Menu Login"
+                || currentScene == "Menu Register"
+                || currentScene == "Menu Utama"
+            ) {
+                loadingPopup.SetActive(false);
+            }
+
+            // ? Disable NoAuth popup
+            if (
+                currentScene == "Menu Katalog"
+                || currentScene == "Menu Product"
+            ) {
+                noAuthPopup.SetActive(false);
+            }
+
+            // ? Disable scene-specific popups
             if (currentScene == "Menu Katalog")
                 catalogItems.filterPopup.SetActive(false);
+            else if (currentScene == "Menu Utama")
+                mainItems.accountPopup.SetActive(false);
             else if (currentScene == "Menu Alamat") {
                 addressItems.cityPopup.SetActive(false);
                 addressItems.courierPopup.SetActive(false);
+            }
+            else if (currentScene == "Menu Login") {
+                loginItems.noticePopup.SetActive(false);
+                loginItems.nullPopup.SetActive(false);
+            }
+            else if (currentScene == "Menu Register") {
+                registerItems.noticePopup.SetActive(false);
+                registerItems.nullPopup.SetActive(false);
             }
             popupActive = false;
         }
@@ -106,22 +198,30 @@ public class Mockup_Menu : MonoBehaviour
     {
         string thisScene = SceneManager.GetActiveScene().name;
         if (sceneName == "Menu Product") {
-            string selectedProductName = EventSystem.current.currentSelectedGameObject.transform.GetChild(1).GetComponent<Text>().text;
+            GameObject clickerObj = EventSystem.current.currentSelectedGameObject;
+            string selectedProductName = clickerObj.transform.GetChild(1).GetComponent<Text>().text;
             sessionData.SaveSceneSession(sceneName,thisScene,selectedProductName);
 
             // ? Save the Product Information
-            Product product = EventSystem.current.currentSelectedGameObject.GetComponent<Product>();
+            Product.ProductAttr productAttr = clickerObj.GetComponent<Product>().productAttr;
             sessionData.SaveProductInfo(
-                codeInput: product.code,
-                nameInput: product.name,
-                catCodeInput: product.category_code,
-                priceInput: product.price,
-                qtyInput: product.qty
+                codeInput: productAttr.code,
+                nameInput: productAttr.name,
+                catCodeInput: productAttr.category_code,
+                priceInput: productAttr.price,
+                qtyInput: productAttr.qty
             );
         }
-        else
+        else {
+            if (sceneName == "AR" || sceneName == "Menu Katalog")
+                TogglePopup("Loading");
             sessionData.SaveSceneSession(sceneName,thisScene);
-        SceneManager.LoadScene(sceneName);
+        }
+
+        if (sessionData.currentUsername == "" && sceneName == "Menu Checkout")
+            TogglePopup("NoAuth");
+        else
+            SceneManager.LoadScene(sceneName);
     }
 
     public void ExitApp()
@@ -174,5 +274,21 @@ public class Mockup_Menu : MonoBehaviour
             paymentItems.purchaseButton.GetComponent<Button>().interactable = true;
         else
             paymentItems.purchaseButton.GetComponent<Button>().interactable = false;   
+    }
+
+    public void AccountClick() {
+        if (sessionData.currentUsername != "")
+            TogglePopup("Logout");
+        else
+            OpenScene("Menu Login");
+    }
+
+    public void Logout() {
+        sessionData.LogoutSuccess();
+        OpenScene("Menu Login");
+    }
+
+    public void OpenMapsLink() {
+        Application.OpenURL(mapsUrl);
     }
 }
