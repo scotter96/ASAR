@@ -2,6 +2,7 @@
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
+using System;
 
 public class Product : MonoBehaviour
 {
@@ -120,10 +121,13 @@ public class Product : MonoBehaviour
                 Debug.LogWarning($"Value {keys[i]} is null!");
         }
 
+        // * Get the product category
+        string category = Catalogue.categories[int.Parse(productAttr.category_code)-1];
+
         // * Now set the product info data
-        productProductItems.productName.text = productAttr.code;
-        productProductItems.productCat.text = productAttr.name;
-        productProductItems.productVariant.text = productAttr.category_code;
+        productProductItems.productName.text = productAttr.name;
+        productProductItems.productCat.text = category;
+        // productProductItems.productVariant.text = productAttr.category_code;
         productProductItems.productPrice.text = productAttr.price.ToString();
         productProductItems.productStock.text = productAttr.qty.ToString();
 
@@ -150,6 +154,7 @@ public class Product : MonoBehaviour
                 productAttr.name,
                 productAttr.category_code,
                 productAttr.price,
+                productAttr.qty,
                 qty
             );
             if (qty>=0)

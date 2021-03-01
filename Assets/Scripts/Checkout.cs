@@ -38,7 +38,7 @@ public class Checkout : MonoBehaviour
             cartItemProduct.productAttr.name = item["name"];
             cartItemProduct.productAttr.category_code = item["category_code"];
             cartItemProduct.productAttr.price = int.Parse(item["price"]);
-            cartItemProduct.productAttr.qty = int.Parse(item["qty"]);
+            cartItemProduct.productAttr.qty = int.Parse(item["stock"]);
 
             // ? Declare the item's UI objects
             Text itemName = cartItem.transform.GetChild(1).GetChild(0).GetComponentInChildren<Text>();

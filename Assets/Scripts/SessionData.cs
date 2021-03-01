@@ -140,12 +140,22 @@ public class SessionData : MonoBehaviour
         string json = JsonUtility.ToJson(user);
         write = DBWrite("users",json);
 
-        // ? Flush the User object parameters
+        // ? Flush the User object parameters (user needs to login first to use the newly created account)
         user.email = string.Empty;
         user.username = string.Empty;
         user.password = string.Empty;
 
         return write;
+    }
+
+    // ? Write this product qty to desired value
+    public bool SetQty (string productCode, int qty) {
+        return DBWrite(
+            tableName: "product_item",
+            pkId: (int.Parse(productCode)-1).ToString(),
+            key: "qty",
+            value: qty.ToString()
+        );
     }
 
     public void LoginSuccess (string username, string password) {
@@ -160,7 +170,7 @@ public class SessionData : MonoBehaviour
         ResetSave();
     }
 
-    public void AddToCart(string code, string name, string category_code, int price, int qty) {
+    public void AddToCart(string code, string name, string category_code, int price, int stock, int qty) {
         bool itemExisted = false;
         foreach (Dictionary<string,string> item in itemsInCart) {
             if (item["code"] == code) {
@@ -179,6 +189,7 @@ public class SessionData : MonoBehaviour
                 newData.Add("name",name);
                 newData.Add("category_code",category_code);
                 newData.Add("price",price.ToString());
+                newData.Add("stock",stock.ToString());
                 newData.Add("qty",qty.ToString());
                 itemsInCart.Add(newData);
             }
@@ -277,19 +288,21 @@ public class SessionData : MonoBehaviour
     }
 
     // ? This function returns boolean as the result. Can be used to update the whole record, or just desired field
-    bool DBWrite(string tableName, string json="", string key="", string value="") {
-        string pkId = (users.Count).ToString("");
-        if (json != "" && key == "") {
+    bool DBWrite(string tableName, string json="", string pkId="", string key="", string value="") {
+        if (json != "" && pkId == "" && key == "") {
+            pkId = (users.Count).ToString("");
             rootRef.Child(tableName).Child(pkId).SetRawJsonValueAsync(json);
             return true;
         }
-        // TODO WIP: Update new value to a certain key (currently unused)
-        // else if (key != "" && json == "") {
-        //     rootRef.Child(tableName).Child(pkId).Child(key).SetValueAsync(value);
-        //     return true;
-        // }
+        else if (json == "" && pkId != "" && key != "") {
+            if (tableName == "product_item" && (key == "price" || key == "qty"))
+                rootRef.Child(tableName).Child(pkId).Child(key).SetValueAsync(int.Parse(value));
+            else
+                rootRef.Child(tableName).Child(pkId).Child(key).SetValueAsync(value);
+            return true;
+        }
         else {
-            Debug.LogError($"Error writing {tableName}! Params:\njson: {json}\nkey: {key}\nvalue: {value}");
+            Debug.LogError($"Error writing {tableName}! Params:\njson: {json}\npkId: {pkId}\nkey: {key}\nvalue: {value}");
             return false;
         }
     }

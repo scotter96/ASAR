@@ -2,7 +2,6 @@
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System;
-using System.Collections.Generic;
 
 public class Catalogue : MonoBehaviour
 {
@@ -17,7 +16,7 @@ public class Catalogue : MonoBehaviour
     public Text totalInCart;
 
     // ! These values below is already mapped. DO NOT ALTER THE ORDER!
-    public string[] categories = {
+    public static string[] categories = {
         "Dodol",
         "Kacang",
         "Keripik",

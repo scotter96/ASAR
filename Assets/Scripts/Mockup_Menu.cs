@@ -2,6 +2,7 @@
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.EventSystems;
+using System.Collections.Generic;
 
 public class Mockup_Menu : MonoBehaviour
 {
@@ -298,6 +299,19 @@ public class Mockup_Menu : MonoBehaviour
             paymentItems.purchaseButton.GetComponent<Button>().interactable = true;
         else
             paymentItems.purchaseButton.GetComponent<Button>().interactable = false;   
+    }
+
+    public void FinishPurchase() {
+        foreach (Dictionary<string,string> item in sessionData.itemsInCart) {
+            string code = string.Empty;
+            string qty = string.Empty;
+            if (
+                item.TryGetValue("code", out code)
+                && item.TryGetValue("qty", out qty)
+            )
+                sessionData.SetQty(code,int.Parse(qty));
+        }
+        OpenScene("Menu Utama");
     }
 
     public void AccountClick() {
